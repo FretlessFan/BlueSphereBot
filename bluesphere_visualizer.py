@@ -801,11 +801,12 @@ def evaluate_move(show_map,true_map,move,playa):
     return final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map)
 
 
-spooky= os.listdir("C://Users//jzbus//Downloads//Blue_Spheres_Data//Blue_Spheres_Data//Blue_Spheres_Data//")
+blue_spheres_saves_location = ".//Blue_Spheres_Data//"
+spooky= os.listdir(blue_spheres_saves_location)
 print(spooky)
 i = 3
 print(spooky[i])
-donezo =np.load("C://Users//jzbus//Downloads//Blue_Spheres_Data//Blue_Spheres_Data//Blue_Spheres_Data//"+spooky[i])
+donezo =np.load(blue_spheres_saves_location+spooky[i])
 
 
 true_map = copy.copy(donezo)
