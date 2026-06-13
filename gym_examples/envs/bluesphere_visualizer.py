@@ -23,7 +23,7 @@ NODE_ARRAY = []
 """
 
 def get_corner_blue(location,true_map):
-    print("hello")
+    #print("hello")
     slider_corner = make_slider_corner()
     #print(len(slider_corner))
     #location = corner_list[]
@@ -34,12 +34,12 @@ def get_corner_blue(location,true_map):
             adder = np.array(elem[0])
             np.place(adder, adder == 0,1)
             done = np.array(location) + np.array(adder)
-            print("HOOOO",done)
+            #print("HOOOO",done)
             return done
 
 #
 def find_all_corners(true_map):
-    print("how")
+    #print("how")
     corner_list = []
     for i in range(len(true_map)):
         for j in range(len(true_map[i])):
@@ -58,12 +58,12 @@ def neo_ensnare(true_map):
     crack_list = []
     for elem in corner_list:
 #        if not elem in crack_list:
-        path = find_shortest_path(elem, elem, [], true_map, RED, [])
+        path = find_shortest_path(elem, elem, [], true_map, RED, [],true_map)
 
-        print("I am path",path)
+        #print("I am path",path)
         if(path[0] != -1):
             fill_list = get_fill(get_corner_blue(elem, true_map).tolist(), path[2], [], true_map)
-            print("I am Fill_List for",elem,"Fill_List",fill_list)
+            #print("I am Fill_List for",elem,"Fill_List",fill_list)
             if(fill_list[0] == True):
                 crack_list = crack_list + fill_list[1] + path[2]
                 remove_row_col_dupes(crack_list)
@@ -78,10 +78,10 @@ def is_outside(blue_corn,full_path):
     min_col = min([spec_corner[1] for spec_corner in full_path])
     max_col = max([spec_corner[1] for spec_corner in full_path])
 
-    print("min_row",min_row)
-    print("max_row",max_row)
-    print("min_col",min_col)
-    print("max_col",max_col)
+    # print("min_row",min_row)
+    # print("max_row",max_row)
+    # print("min_col",min_col)
+    # print("max_col",max_col)
     if(blue_corn[0] <= min_row):
         return True
     if(blue_corn[0] >= max_row):
@@ -113,7 +113,7 @@ def remove_row_col_dupes(row_col_list):
     return [list(elem) for elem in list(set([tuple(elem) for elem in row_col_list]))]
 
 def get_fill(blue_corn,full_path,current_fill,true_map):
-    print("here",blue_corn)
+    #print("here",blue_corn)
     if(is_outside(blue_corn,full_path) == False):
         check_grid = get_check_grid(blue_corn[0], blue_corn[1])
 
@@ -164,7 +164,7 @@ def draw_circuit_stage(donezo):
 
     np.place(donezo, donezo == (0 - (BASELINE - 1)), 0)
 
-    print(donezo)
+#    print(donezo)
     for i in range(0,donezo.shape[0],1):
         for j in range(0,donezo.shape[1],1):
 
@@ -356,8 +356,8 @@ if(0):
     col = 8
 
 def get_check_grid(row,col):
-    max_height = donezo.shape[0] - 1
-    max_length = donezo.shape[1] - 1
+    max_height = 15
+    max_length = 15
     min_height = 0
     min_length = 0
 
@@ -376,8 +376,8 @@ def get_check_grid(row,col):
 
 
 def get_nine_grid(row,col):
-    max_height = donezo.shape[0] - 1
-    max_length = donezo.shape[1] - 1
+    max_height = 15
+    max_length = 15
     min_height = 0
     min_length = 0
 
@@ -411,7 +411,7 @@ def make_slider_corner():
     slider_corner = []
     for i in range(-1,1,1):
         for j in range(-1,1,1):
-            print("time",j,i)
+            #print("time",j,i)
 
             slider_corner.append([[i,j],corner_array[count]])
             count = count + 1
@@ -431,10 +431,10 @@ def check_corner_type(location,select,circuit_map,slider_corner_elem):
     for i in range(len(corner)):
         for j in range(len(corner)):
 
-            print("CircuitMap ", location[0] + slider[0] + i, location[1] + slider[1] + j)
+            #print("CircuitMap ", location[0] + slider[0] + i, location[1] + slider[1] + j)
             if(is_outside([location[0] + slider[0] + i, location[1] + slider[1] + j],[[-1,-1],[16,16]]) == False):
-                print("CircuitMap ",circuit_map[location[0] + slider[0] +i, location[1] + slider[1] + j])
-                print("corna",corner[i][j])
+             #   print("CircuitMap ",circuit_map[location[0] + slider[0] +i, location[1] + slider[1] + j])
+              #  print("corna",corner[i][j])
 
 
 
@@ -442,14 +442,14 @@ def check_corner_type(location,select,circuit_map,slider_corner_elem):
 
                     if (circuit_map[location[0] + slider[0] +i, location[1] + slider[1] + j] == corner[i][j]):
 
-                        print("passed Check")
+                        pass
                     else:
                         return False
                 else:
                     if(circuit_map[location[0] + slider[0] + i, location[1] + slider[1] + j] == corner[i][j]):
-                        print("passed Check")
+                        pass
                     elif(circuit_map[location[0] + slider[0] + i, location[1] + slider[1] + j] == select):
-                        print("passed Check")
+                        pass
 
                     else:
                         return False
@@ -464,13 +464,13 @@ if(0):
     hero = is_corner(location, select, circuit_map)
 
 def is_corner(location,select,circuit_map):
-    print("hello")
+    #print("hello")
     slider_corner = make_slider_corner()
     #print(len(slider_corner))
     count = 0
     for elem in slider_corner:
-        print("elem",elem)
-        print("Neo Kount:",count)
+     #   print("elem",elem)
+      #  print("Neo Kount:",count)
         count = count + 1
         if(check_corner_type(location,select,circuit_map,elem)):
             return True
@@ -488,7 +488,7 @@ def check_around(row,col,circuit_map):
 
     if(len([elem for elem in check_with_labels if elem >= BASELINE]) == 0):
         # There is no nodes in the vicinity, time to make a new node
-        print("You need to generate Node!",MIN_NODE)
+        #print("You need to generate Node!",MIN_NODE)
         NODE_ARRAY.append([MIN_NODE, [row, col]])
         MIN_NODE = MIN_NODE + 1
 
@@ -498,7 +498,7 @@ def check_around(row,col,circuit_map):
 
     else:
         #already existing nodes become node
-        print("need to recolor nodes")
+        #print("need to recolor nodes")
         return list(set(list([elem for elem in check_with_labels if elem >= BASELINE])))
 
 
@@ -510,7 +510,7 @@ def paint_circuit(row,col,circuit_map):
     paints = check_around(row,col,circuit_map)
     if(len(paints) == 1):
         #No need to refill colors only one node in the vicinity
-        print("No repainting, single color")
+        #print("No repainting, single color")
         new_circuit_map = circuit_map.copy()
         new_circuit_map[row,col] = paints[0]
 
@@ -530,11 +530,11 @@ def paint_circuit(row,col,circuit_map):
 def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map):
     score = -0.1
     if (playa.is_dead()):
-        print("dead")
+        #print("dead")
         return true_map, show_map, initial_row, initial_col, move, circuit_map,score
     elif (playa.position_is_outside()):
         playa.kill()
-        print("outside")
+        #print("outside")
         return true_map, show_map, initial_row, initial_col, move, circuit_map,score
 
     elif ((true_map[playa.get_Row()][playa.get_Col()] == RED) and (playa.get_prev_move_turn() == False)):
@@ -542,7 +542,7 @@ def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map)
 
     elif(true_map[playa.get_Row()][playa.get_Col()] == BLUE):
 
-        circuit_map = paint_circuit(playa.get_Row(),playa.get_Col(),circuit_map)
+        #circuit_map = paint_circuit(playa.get_Row(),playa.get_Col(),circuit_map)
         true_map[playa.get_Row()][playa.get_Col()] = RED
         score = score + 1
 
@@ -600,9 +600,9 @@ if(0):
 
 
 
-def find_longest_path(cur_position,end_location,previous_moves_encrypt,circuit_map,node_num,prev_move):
-    print("hi")
-    print("Current",cur_position)
+def find_longest_path(cur_position,end_location,previous_moves_encrypt,circuit_map,node_num,prev_move,true_map):
+    #print("hi")
+    #print("Current",cur_position)
     turn = len(previous_moves_encrypt)
 
     if(not is_around_blue(cur_position,true_map)):
@@ -623,18 +623,18 @@ def find_longest_path(cur_position,end_location,previous_moves_encrypt,circuit_m
         final_moves = [elem for elem in possible_moves if
                           (not convert_position_from_prime(elem[0],elem[1])  in previous_moves_encrypt) ]
         evaluate_array = []
-        print("final",final_moves)
-        print("possible moves:",possible_moves)
-        print(len(final_moves))
+        #print("final",final_moves)
+        #print("possible moves:",possible_moves)
+        #print(len(final_moves))
         if (len(final_moves) == 0):
             return -1,previous_moves_encrypt,prev_move
         else:
-            print("Made it here")
+            #print("Made it here")
             for elem in final_moves:
                 copi = copy.copy(prev_move)
                 copi.append(elem)
                 evaluate_array.append(find_longest_path(elem,end_location,
-                                  previous_moves_encrypt+ [convert_position_from_prime(elem[0],elem[1])],circuit_map,node_num,copi))
+                                  previous_moves_encrypt+ [convert_position_from_prime(elem[0],elem[1])],circuit_map,node_num,copi,true_map))
 
 
             max_length = -1
@@ -658,11 +658,11 @@ if(0):
     circuit_map = true_map
     node_num = RED
     prev_move = []
-def find_shortest_path(cur_position,end_location,previous_moves_encrypt,circuit_map,node_num,prev_move):
-    print("hi")
-    print("Current",cur_position)
+def find_shortest_path(cur_position,end_location,previous_moves_encrypt,circuit_map,node_num,prev_move,true_map):
+    #print("hi")
+    #print("Current",cur_position)
     turn = len(previous_moves_encrypt)
-    print("I am turn",turn)
+    #print("I am turn",turn)
 
     if(not is_around_blue(cur_position,true_map)):
         return -1, previous_moves_encrypt, prev_move
@@ -682,18 +682,18 @@ def find_shortest_path(cur_position,end_location,previous_moves_encrypt,circuit_
         final_moves = [elem for elem in possible_moves if
                           (not convert_position_from_prime(elem[0],elem[1])  in previous_moves_encrypt) ]
         evaluate_array = []
-        print("final",final_moves)
-        print("possible moves:",possible_moves)
-        print(len(final_moves))
+        #print("final",final_moves)
+        #print("possible moves:",possible_moves)
+        #print(len(final_moves))
         if (len(final_moves) == 0):
             return -1,previous_moves_encrypt,prev_move
         else:
-            print("Made it here")
+            #print("Made it here")
             for elem in final_moves:
                 copi = copy.copy(prev_move)
                 copi.append(elem)
                 evaluate_array.append(find_shortest_path(elem,end_location,
-                                  previous_moves_encrypt+ [convert_position_from_prime(elem[0],elem[1])],circuit_map,node_num,copi))
+                                  previous_moves_encrypt+ [convert_position_from_prime(elem[0],elem[1])],circuit_map,node_num,copi,true_map))
 
 
             min_length = 1000000
@@ -732,15 +732,20 @@ def convert_ensnare(ensnare,true_map,playa):
     return true_map,bonus_points
 
 def make_show_map(true_map,playa):
-    show_map =copy.copy(true_map)
+    show_map =copy.deepcopy(true_map)
+
+    #print("BEFORE",show_map)
     if(playa.position_is_outside() == False):
         show_map[playa.get_Row()][playa.get_Col()] = 6
+
+     #   print("AFTA", show_map)
         return show_map
     else:
         return show_map
 
 
 def evaluate_move(show_map,true_map,move,playa):
+    circuit_map = None
     initial_row = playa.get_Row()
     initial_col = playa.get_Col()
 
@@ -813,58 +818,54 @@ def evaluate_move(show_map,true_map,move,playa):
     return final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map)
 
 
-blue_spheres_saves_location = ".//Blue_Spheres_Data//"
-spooky= os.listdir(blue_spheres_saves_location)
-print(spooky)
-len(spooky)
-i = 4
-print(spooky[i])
-donezo =np.load(blue_spheres_saves_location+spooky[i])
-
-
-true_map = copy.copy(donezo)
-
-circuit_map = copy.copy(donezo)
-
-np.place(true_map, true_map == 6, 0)
-
-draw_current_stage(donezo)
-
-map = donezo
-playa = Player(3,15)
-
-show_map = map
-
-#for i in range(0,20,1):
-
-typing = ""
-
-while(typing != "done"):
-    print("Direction:",playa.get_direction())
-    print("Reverse:",playa.get_reverse())
-    typing = input("Next Move:")
-    if(typing== ""):
-        typing= "adv"
-    true_map,show_map,initial_row,initial_col,move,circuit_map,score = evaluate_move(show_map,true_map,typing,playa)
-
-    print("I will ensare")
-    true_map, bonus_points = convert_ensnare(neo_ensnare(true_map),true_map,playa)
-    show_map = make_show_map(true_map,playa)
-    draw_current_stage(show_map)
-    print("I am the circuit map",circuit_map)
-    fake_circ = copy.copy(circuit_map)
-    #draw_circuit_stage(fake_circ)
-    full_score = score + bonus_points
-
-    if(playa.is_dead()):
-        print("I AM DEAD")
-        typing= "done"
-        full_score = -10
-
-
-    print("Full_Score",full_score)
-    np.array(show_map)
-
-
-# blah = np.count_nonzero((true_map == 1) | (true_map == 5))
-np.linalg.norm(np.array(np.array([0,0])) - np.array([15,3]))
+# blue_spheres_saves_location = "C://Users//jzbus//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
+# spooky= os.listdir(blue_spheres_saves_location)
+# print(spooky)
+# len(spooky)
+# i = 4
+# print(spooky[i])
+# donezo =np.load(blue_spheres_saves_location+spooky[i])
+#
+#
+# true_map = copy.copy(donezo)
+#
+# circuit_map = copy.copy(donezo)
+#
+# np.place(true_map, true_map == 6, 0)
+#
+# draw_current_stage(donezo)
+#
+# map = donezo
+# playa = Player(3,15)
+#
+# show_map = map
+#
+# #for i in range(0,20,1):
+#
+# typing = ""
+#
+# while(typing != "done"):
+#     print("Direction:",playa.get_direction())
+#     print("Reverse:",playa.get_reverse())
+#     typing = input("Next Move:")
+#     if(typing== ""):
+#         typing= "adv"
+#     true_map,show_map,initial_row,initial_col,move,circuit_map,score = evaluate_move(show_map,true_map,typing,playa)
+#
+#     print("I will ensare")
+#     true_map, bonus_points = convert_ensnare(neo_ensnare(true_map),true_map,playa)
+#     show_map = make_show_map(true_map,playa)
+#     draw_current_stage(show_map)
+#     print("I am the circuit map",circuit_map)
+#     fake_circ = copy.copy(circuit_map)
+#     #draw_circuit_stage(fake_circ)
+#     full_score = score + bonus_points
+#
+#     if(playa.is_dead()):
+#         print("I AM DEAD")
+#         typing= "done"
+#         full_score = -10
+#
+#
+#     print("Full_Score",full_score)
+#     np.array(show_map)
