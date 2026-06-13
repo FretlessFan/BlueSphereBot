@@ -528,14 +528,14 @@ def paint_circuit(row,col,circuit_map):
 
 
 def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map):
-
+    score = -0.1
     if (playa.is_dead()):
         print("dead")
-        return true_map, show_map, initial_row, initial_col, move, circuit_map
+        return true_map, show_map, initial_row, initial_col, move, circuit_map,score
     elif (playa.position_is_outside()):
         playa.kill()
         print("outside")
-        return true_map, show_map, initial_row, initial_col, move, circuit_map
+        return true_map, show_map, initial_row, initial_col, move, circuit_map,score
 
     elif ((true_map[playa.get_Row()][playa.get_Col()] == RED) and (playa.get_prev_move_turn() == False)):
         playa.kill()
@@ -544,13 +544,14 @@ def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map)
 
         circuit_map = paint_circuit(playa.get_Row(),playa.get_Col(),circuit_map)
         true_map[playa.get_Row()][playa.get_Col()] = RED
+        score = score + 1
 
     elif(true_map[playa.get_Row()][playa.get_Col()] == BUMPER):
 
         if(move == "jump_one"):
 
             playa.advance(1)
-            true_map,show_map,initial_row,initial_col,move,circuit_map=final_rest(show_map,true_map,playa,initial_row,initial_col,"adv",circuit_map)
+            true_map,show_map,initial_row,initial_col,move,circuit_map,score=final_rest(show_map,true_map,playa,initial_row,initial_col,"adv",circuit_map)
 
         else:
             playa.set_Position(initial_row,initial_col)
@@ -562,14 +563,15 @@ def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map)
 
 
         playa.spring_cap()
-        true_map,show_map,initial_row,initial_col,move,circuit_map= final_rest(show_map, true_map, playa, initial_row, initial_col, "adv",circuit_map)
+        true_map,show_map,initial_row,initial_col,move,circuit_map,score= final_rest(show_map, true_map, playa, initial_row, initial_col, "adv",circuit_map)
 
     elif(true_map[playa.get_Row()][playa.get_Col()] == RING):
         true_map[playa.get_Row()][playa.get_Col()] = 0
         playa.increment_ring()
+        score = score + 2
     show_map = make_show_map(true_map, playa)
 
-    return true_map,show_map,initial_row,initial_col,move,circuit_map
+    return true_map,show_map,initial_row,initial_col,move,circuit_map,score
 
 
 
@@ -710,14 +712,24 @@ def find_shortest_path(cur_position,end_location,previous_moves_encrypt,circuit_
 
 
 def convert_ensnare(ensnare,true_map,playa):
-    for elem in ensnare:
-        true_map[elem[0]][elem[1]] = RING
+    bonus_points = 0
+    if(len(ensnare) >= 0):
+
+        if(len(ensnare) <= 9):
+            bonus_points = len(ensnare)*1.2
+        elif(len(ensnare) <= 16):
+            bonus_points = len(ensnare)*1.5
+        else:
+            bonus_points = len(ensnare) * 2
+
+        for elem in ensnare:
+            true_map[elem[0]][elem[1]] = RING
 
     if (playa.position_is_outside() == False):
         if(true_map[playa.get_Row()][playa.get_Col()] == RING):
             true_map[playa.get_Row()][playa.get_Col()] = 0
 
-    return true_map
+    return true_map,bonus_points
 
 def make_show_map(true_map,playa):
     show_map =copy.copy(true_map)
@@ -804,7 +816,8 @@ def evaluate_move(show_map,true_map,move,playa):
 blue_spheres_saves_location = ".//Blue_Spheres_Data//"
 spooky= os.listdir(blue_spheres_saves_location)
 print(spooky)
-i = 3
+len(spooky)
+i = 4
 print(spooky[i])
 donezo =np.load(blue_spheres_saves_location+spooky[i])
 
@@ -832,19 +845,26 @@ while(typing != "done"):
     typing = input("Next Move:")
     if(typing== ""):
         typing= "adv"
-    true_map,show_map,initial_row,initial_col,move,circuit_map = evaluate_move(show_map,true_map,typing,playa)
+    true_map,show_map,initial_row,initial_col,move,circuit_map,score = evaluate_move(show_map,true_map,typing,playa)
 
     print("I will ensare")
-    true_map = convert_ensnare(neo_ensnare(true_map),true_map,playa)
+    true_map, bonus_points = convert_ensnare(neo_ensnare(true_map),true_map,playa)
     show_map = make_show_map(true_map,playa)
     draw_current_stage(show_map)
     print("I am the circuit map",circuit_map)
     fake_circ = copy.copy(circuit_map)
-    draw_circuit_stage(fake_circ)
+    #draw_circuit_stage(fake_circ)
+    full_score = score + bonus_points
 
     if(playa.is_dead()):
         print("I AM DEAD")
         typing= "done"
+        full_score = -10
 
 
+    print("Full_Score",full_score)
+    np.array(show_map)
 
+
+# blah = np.count_nonzero((true_map == 1) | (true_map == 5))
+np.linalg.norm(np.array(np.array([0,0])) - np.array([15,3]))
