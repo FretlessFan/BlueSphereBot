@@ -1,3 +1,11 @@
+from gymnasium.utils.env_checker import check_env
+
+from gym_examples.envs import BlueSphereEnv
+
+env = BlueSphereEnv()
+# This will raise explicit warnings/errors if SB3 is going to fail on it
+check_env(env)
+
 import gymnasium as gym
 import gym_examples  # Mandatory: This registers the environment!
 

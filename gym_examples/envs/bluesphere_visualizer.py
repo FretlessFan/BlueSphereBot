@@ -1,5 +1,5 @@
 import cv2
-
+import typing
 import numpy as np
 import os
 import copy
@@ -50,16 +50,21 @@ def find_all_corners(true_map):
 
     return corner_list
 
-def neo_ensnare(true_map):
+def neo_ensnare(true_map,worth_proc):
     corner_list = find_all_corners(true_map)
+    #print("found corners",corner_list)
     if(0):
         elem = corner_list[0]
 
     crack_list = []
+    if worth_proc == False:
+        return crack_list
+
     for elem in corner_list:
+        #print("corna_list",elem)
 #        if not elem in crack_list:
         path = find_shortest_path(elem, elem, [], true_map, RED, [],true_map)
-
+        #print("path",path)
         #print("I am path",path)
         if(path[0] != -1):
             fill_list = get_fill(get_corner_blue(elem, true_map).tolist(), path[2], [], true_map)
@@ -109,12 +114,15 @@ def is_around_blue(location,true_map):
             return True
     return False
 
+def hit_non_blue_red(position,true_map):
+    return not (true_map[position[0],position[1]] in [RED,BLUE])
+
 def remove_row_col_dupes(row_col_list):
     return [list(elem) for elem in list(set([tuple(elem) for elem in row_col_list]))]
 
 def get_fill(blue_corn,full_path,current_fill,true_map):
-    #print("here",blue_corn)
-    if(is_outside(blue_corn,full_path) == False):
+   # print("here",blue_corn)
+    if((is_outside(blue_corn,full_path) == False) and (hit_non_blue_red(blue_corn,true_map) == False)):
         check_grid = get_check_grid(blue_corn[0], blue_corn[1])
 
         possible_moves = [elem for elem in check_grid if true_map[elem[0], elem[1]] != RED]
@@ -277,6 +285,12 @@ class Player:
 
     def get_Col(self):
         return self.col
+
+    def set_Row(self,value):
+        self.row = value
+
+    def set_Col(self,value):
+        self.col = value
 
     def position_is_outside(self):
         return is_outside([self.row,self.col],[[-1,-1],[16,16]])
@@ -528,13 +542,15 @@ def paint_circuit(row,col,circuit_map):
 
 
 def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map):
-    score = -0.1
+    score = -0.2
     if (playa.is_dead()):
         #print("dead")
         return true_map, show_map, initial_row, initial_col, move, circuit_map,score
     elif (playa.position_is_outside()):
-        playa.kill()
-        #print("outside")
+        playa.set_Col(initial_col)
+        playa.set_Row(initial_row)
+        score = score - 2
+        print("outside")
         return true_map, show_map, initial_row, initial_col, move, circuit_map,score
 
     elif ((true_map[playa.get_Row()][playa.get_Col()] == RED) and (playa.get_prev_move_turn() == False)):
@@ -544,7 +560,7 @@ def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map)
 
         #circuit_map = paint_circuit(playa.get_Row(),playa.get_Col(),circuit_map)
         true_map[playa.get_Row()][playa.get_Col()] = RED
-        score = score + 1
+        score = score + 1.3
 
     elif(true_map[playa.get_Row()][playa.get_Col()] == BUMPER):
 
@@ -649,6 +665,21 @@ def find_longest_path(cur_position,end_location,previous_moves_encrypt,circuit_m
 
             return max_length,trail,clear_trail
 
+
+def worth_processing(true_map):
+    #row version
+    for i in range(len(true_map)):
+        for j in range(len(true_map[i])-1):
+            if((true_map[i][j] == BLUE) & ((true_map[i][j+1] == BLUE))):
+                return True
+
+    for i in range(len(true_map) -1):
+        for j in range(len(true_map[i])):
+            if ((true_map[i][j] == BLUE) & ((true_map[i+1][j] == BLUE))):
+                return True
+
+    return False
+            #true_map[i][j] = true_map[i][j] + true_map[i][j+1]
 
 if(0):
     find_shortest_path(elem, elem, [], true_map, RED, [])
@@ -818,13 +849,73 @@ def evaluate_move(show_map,true_map,move,playa):
     return final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map)
 
 
-# blue_spheres_saves_location = "C://Users//jzbus//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
+# blue_spheres_saves_location = "C://Users//bretstev//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
 # spooky= os.listdir(blue_spheres_saves_location)
 # print(spooky)
 # len(spooky)
-# i = 4
+# i = 3
 # print(spooky[i])
 # donezo =np.load(blue_spheres_saves_location+spooky[i])
+# # #donezo =np.load(blue_spheres_saves_location+'BlueSphere_MD_Chunk7C.npy')
+# # #donezo =np.load(blue_spheres_saves_location+'BlueSphere_MD_Chunk74.npy')
+# #
+# #
+# true_map = copy.copy(donezo)
+#
+# circuit_map = copy.copy(donezo)
+#
+# np.place(true_map, true_map == 6, 0)
+#
+# draw_current_stage(donezo)
+#
+# map = donezo
+# playa = Player(3,15)
+# #
+# show_map = map
+# worth_it = worth_processing(true_map)
+# # print("Worth Processing?",worth_it)
+# # #for i in range(0,20,1):
+# #
+# # typing = ""
+# #
+# while(typing != "done"):
+#     print("Direction:",playa.get_direction())
+#     print("Reverse:",playa.get_reverse())
+#     typing = input("Next Move:")
+#     if(typing== ""):
+#         typing= "adv"
+#     true_map,show_map,initial_row,initial_col,move,circuit_map,score = evaluate_move(show_map,true_map,typing,playa)
+#
+#     print("I will ensare")
+#     #print("joij neo: ens:",neo_ensnare(true_map))
+#     true_map, bonus_points = convert_ensnare(neo_ensnare(true_map,worth_it),true_map,playa)
+#     print("got past ensnaer")
+#     show_map = make_show_map(true_map,playa)
+#     draw_current_stage(show_map)
+#     print("I am the circuit map",circuit_map)
+#     fake_circ = copy.copy(circuit_map)
+#     #draw_circuit_stage(fake_circ)
+#     full_score = score + bonus_points
+#
+#     if(playa.is_dead()):
+#         print("I AM DEAD")
+#         typing= "done"
+#         full_score = -10
+
+
+    # print("Full_Score",full_score)
+    # np.array(show_map)
+
+
+
+
+# print(spooky)
+# len(spooky)
+# i = 3
+# print(spooky[i])
+# donezo =np.load(blue_spheres_saves_location+spooky[i])
+# #donezo =np.load(blue_spheres_saves_location+'BlueSphere_MD_Chunk7C.npy')
+# #donezo =np.load(blue_spheres_saves_location+'BlueSphere_MD_Chunk74.npy')
 #
 #
 # true_map = copy.copy(donezo)
@@ -839,33 +930,16 @@ def evaluate_move(show_map,true_map,move,playa):
 # playa = Player(3,15)
 #
 # show_map = map
+# worth_it = worth_processing(true_map)
+# print("Worth Processing?",worth_it)
+
+# append_list = []
+# blue_spheres_saves_location = "C://Users//bretstev//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
+# spooky= os.listdir(blue_spheres_saves_location)
+# for i in range(len(spooky)):
+#     donezo = np.load(blue_spheres_saves_location + spooky[i])
+#     true_map = copy.copy(donezo)
+#     worth_it = worth_processing(true_map)
+#     append_list.append([spooky[i],worth_it])
 #
-# #for i in range(0,20,1):
-#
-# typing = ""
-#
-# while(typing != "done"):
-#     print("Direction:",playa.get_direction())
-#     print("Reverse:",playa.get_reverse())
-#     typing = input("Next Move:")
-#     if(typing== ""):
-#         typing= "adv"
-#     true_map,show_map,initial_row,initial_col,move,circuit_map,score = evaluate_move(show_map,true_map,typing,playa)
-#
-#     print("I will ensare")
-#     true_map, bonus_points = convert_ensnare(neo_ensnare(true_map),true_map,playa)
-#     show_map = make_show_map(true_map,playa)
-#     draw_current_stage(show_map)
-#     print("I am the circuit map",circuit_map)
-#     fake_circ = copy.copy(circuit_map)
-#     #draw_circuit_stage(fake_circ)
-#     full_score = score + bonus_points
-#
-#     if(playa.is_dead()):
-#         print("I AM DEAD")
-#         typing= "done"
-#         full_score = -10
-#
-#
-#     print("Full_Score",full_score)
-#     np.array(show_map)
+# [elem for elem in append_list if elem[1] == False]
