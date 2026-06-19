@@ -164,27 +164,31 @@ def find_outside(min_row, min_col, max_row, max_col):
 
 def draw_circuit_stage(donezo):
 
+
     neozo= np.zeros((16*40,16*40,3),np.uint8)
 
-    np.place(donezo, donezo <= (BASELINE - 1), 0)
+    if donezo is None:
+       print("no donezo")
+    else:
+        np.place(donezo, donezo <= (BASELINE - 1), 0)
 
-    donezo = donezo - (BASELINE - 1)
+        donezo = donezo - (BASELINE - 1)
 
-    np.place(donezo, donezo == (0 - (BASELINE - 1)), 0)
+        np.place(donezo, donezo == (0 - (BASELINE - 1)), 0)
 
-#    print(donezo)
-    for i in range(0,donezo.shape[0],1):
-        for j in range(0,donezo.shape[1],1):
+    #    print(donezo)
+        for i in range(0,donezo.shape[0],1):
+            for j in range(0,donezo.shape[1],1):
 
-            if (donezo[i][j] == 0):
-                color = (0, 0, 0)
-            else:
-                if(donezo[i][j]*41 <= 255):
-
-                    color = (255,41 + donezo[i][j]*41,63)
+                if (donezo[i][j] == 0):
+                    color = (0, 0, 0)
                 else:
-                    color = (255,61,donezo[i][j]*41 - 255)
-            cv2.rectangle(neozo,(0+j*40,0+i*40),(40+j*40,40+i*40),color,-1)
+                    if(donezo[i][j]*41 <= 255):
+
+                        color = (255,41 + donezo[i][j]*41,63)
+                    else:
+                        color = (255,61,donezo[i][j]*41 - 255)
+                cv2.rectangle(neozo,(0+j*40,0+i*40),(40+j*40,40+i*40),color,-1)
 
 
 
@@ -235,12 +239,34 @@ class Player:
         self.ring = 0
         self.dead = False
         self.prev_move_turn = False
+        self.bounce_counter = 0
+        self.illegal_counter = 0
 
     def kill(self):
         self.dead = True
 
+    def get_illegal_counter(self):
+        return self.illegal_counter
+    def get_bounce_counter(self):
+        return self.bounce_counter
+
+    def reset_bounce_counter(self):
+        self.bounce_counter = 0
+
+    def reset_illegal_counter(self):
+        self.illegal_counter = 0
+
+    def increase_bounce_counter(self):
+        self.bounce_counter += 1
+
+    def increase_illegal_counter(self):
+        self.illegal_counter += 1
+
     def is_dead(self):
         return self.dead
+
+    def set_direction(self,direction):
+        self.direction = direction
 
     def get_prev_move_turn(self):
         return self.prev_move_turn
@@ -368,6 +394,21 @@ class Player:
 if(0):
     row = 8
     col = 8
+
+def is_jump_legal(playa,move,true_map):
+    pseudo_playa = copy.deepcopy(playa)
+    if(move == "jump_one"):
+        pseudo_playa.advance(2)
+    else:
+        pseudo_playa.advance(3)
+
+    if(pseudo_playa.position_is_outside()):
+        return False
+    if(true_map[pseudo_playa.get_Row(),pseudo_playa.get_Col()] == BUMPER):
+        return False
+    else:
+        return True
+
 
 def get_check_grid(row,col):
     max_height = 15
@@ -521,6 +562,7 @@ def check_around(row,col,circuit_map):
 def paint_circuit(row,col,circuit_map):
     global MIN_NODE
     global NODE_ARRAY
+
     paints = check_around(row,col,circuit_map)
     if(len(paints) == 1):
         #No need to refill colors only one node in the vicinity
@@ -542,10 +584,16 @@ def paint_circuit(row,col,circuit_map):
 
 
 def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map):
-    score = -0.2
+    score = -0.01
     if (playa.is_dead()):
         #print("dead")
         return true_map, show_map, initial_row, initial_col, move, circuit_map,score
+
+    elif(move == "illegal"):
+        score = score - 2
+        playa.increase_illegal_counter()
+        return true_map, show_map, initial_row, initial_col, move, circuit_map,score
+
     elif (playa.position_is_outside()):
         playa.set_Col(initial_col)
         playa.set_Row(initial_row)
@@ -557,14 +605,24 @@ def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map)
         playa.kill()
 
     elif(true_map[playa.get_Row()][playa.get_Col()] == BLUE):
+        playa.reset_bounce_counter()
+        playa.reset_illegal_counter()
+        circuit_map = paint_circuit(playa.get_Row(),playa.get_Col(),circuit_map)
 
-        #circuit_map = paint_circuit(playa.get_Row(),playa.get_Col(),circuit_map)
+
         true_map[playa.get_Row()][playa.get_Col()] = RED
-        score = score + 1.3
+
+        if(is_perimeter(playa.get_Row(),playa.get_Col(),true_map)):
+            node_num = circuit_map[playa.get_Row()][playa.get_Col()]
+           # print("We have a perimeter!")
+            score = score + 1.3 * np.count_nonzero(circuit_map == node_num) *10
+        else:
+            score = score + 10
 
     elif(true_map[playa.get_Row()][playa.get_Col()] == BUMPER):
 
-        if(move == "jump_one"):
+        playa.increase_bounce_counter()
+        if(move == "jump_one" ):
 
             playa.advance(1)
             true_map,show_map,initial_row,initial_col,move,circuit_map,score=final_rest(show_map,true_map,playa,initial_row,initial_col,"adv",circuit_map)
@@ -582,10 +640,14 @@ def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map)
         true_map,show_map,initial_row,initial_col,move,circuit_map,score= final_rest(show_map, true_map, playa, initial_row, initial_col, "adv",circuit_map)
 
     elif(true_map[playa.get_Row()][playa.get_Col()] == RING):
+        playa.reset_bounce_counter()
+        playa.reset_illegal_counter()
         true_map[playa.get_Row()][playa.get_Col()] = 0
         playa.increment_ring()
-        score = score + 2
+        score = score + 5
     show_map = make_show_map(true_map, playa)
+
+
 
     return true_map,show_map,initial_row,initial_col,move,circuit_map,score
 
@@ -775,8 +837,98 @@ def make_show_map(true_map,playa):
         return show_map
 
 
-def evaluate_move(show_map,true_map,move,playa):
-    circuit_map = None
+
+
+def is_perimicorner(row,col,true_map):
+    if((is_perimialpha(row -1 ,col-1,true_map) == True) and
+        (is_perimialpha(row -1 ,col,true_map) == True) and
+        (is_perimialpha(row ,col-1,true_map) == True) and
+        true_map[row+1][col+1] == BLUE):
+
+        #print("hro")
+        return True
+
+
+    if((is_perimialpha(row -1 ,col+1,true_map) == True) and
+        (is_perimialpha(row -1 ,col,true_map) == True) and
+        (is_perimialpha(row ,col+1,true_map) == True) and
+        true_map[row+1][col-1] == BLUE):
+        #print("bro")
+        return True
+
+    if((is_perimialpha(row +1 ,col+1,true_map) == True) and
+        (is_perimialpha(row +1 ,col,true_map) == True) and
+        (is_perimialpha(row ,col+1,true_map) == True) and
+        true_map[row-1][col-1] == BLUE):
+        #print("sro")
+        return True
+
+    if((is_perimialpha(row +1 ,col-1,true_map) == True) and
+        (is_perimialpha(row +1 ,col,true_map) == True) and
+        (is_perimialpha(row ,col-1,true_map) == True) and
+        true_map[row-1][col+1] == BLUE):
+        #print("gro")
+        return True
+
+    return False
+
+def is_perimialpha(row,col,true_map):
+    if(is_outside([row,col],[[-1,-1],[16,16]])):
+        return True
+    if(true_map[row][col] in [RING,BUMPER,SPRING,0]):
+        return True
+    else:
+        return False
+
+def is_red_blue(row,col,true_map):
+    return true_map[row][col] in [BLUE,RED]
+
+def is_perimiliner(row,col,true_map):
+    if( (true_map[row][col-1] == BLUE) and
+        (is_perimialpha(row,col+1,true_map) == True) and
+        (is_red_blue(row-1, col, true_map) == True) and
+        (is_red_blue(row + 1, col, true_map) == True)
+
+    ):
+        return True
+
+    if ((true_map[row][col + 1] == BLUE) and
+            (is_perimialpha(row, col - 1, true_map) == True) and
+                (is_red_blue(row - 1, col, true_map) == True) and
+            (is_red_blue(row + 1, col, true_map) == True)
+
+    ):
+        return True
+
+    if ((true_map[row+1][col] == BLUE) and
+            (is_perimialpha(row - 1, col, true_map) == True) and
+            (is_red_blue(row , col -1, true_map) == True) and
+            (is_red_blue(row, col + 1, true_map) == True)
+
+
+    ):
+        return True
+
+    if ((true_map[row-1][col] == BLUE) and
+            (is_perimialpha(row + 1, col, true_map) == True) and
+            (is_red_blue(row, col - 1, true_map) == True) and
+            (is_red_blue(row, col + 1, true_map) == True)
+
+    ):
+        return True
+
+    return False
+
+def is_perimeter(row,col,true_map):
+    if(is_perimiliner(row,col,true_map) == True):
+        return True
+    if(is_perimicorner(row,col,true_map) == True):
+        return True
+    return False
+
+
+def evaluate_move(show_map,true_map,move,playa,circuit_map):
+    #circuit_map = None
     initial_row = playa.get_Row()
     initial_col = playa.get_Col()
 
@@ -822,7 +974,12 @@ def evaluate_move(show_map,true_map,move,playa):
 
     elif(move == "jump_one"):
 
-        playa.jump_one()
+        if(is_jump_legal(playa,move,true_map)):
+
+            playa.jump_one()
+
+        else:
+            move= "illegal"
 
         # if (map[playa.get_Row()][playa.get_Col()] == 3):
         #     playa.advance(1)
@@ -836,7 +993,12 @@ def evaluate_move(show_map,true_map,move,playa):
         #         final_move =  "jump_one"
 
     elif(move == "jump_two"):
-        playa.jump_two()
+        if (is_jump_legal(playa, move, true_map)):
+
+            playa.jump_two()
+
+        else:
+            move = "illegal"
 
         # if(map[playa.get_Row()][playa.get_Col()] == 3):
         #     playa.set_Position(initial_row, initial_col)
@@ -849,11 +1011,11 @@ def evaluate_move(show_map,true_map,move,playa):
     return final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map)
 
 
-# blue_spheres_saves_location = "C://Users//bretstev//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
+# blue_spheres_saves_location = "C://Users//boblaw//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
 # spooky= os.listdir(blue_spheres_saves_location)
 # print(spooky)
 # len(spooky)
-# i = 3
+# i = 0
 # print(spooky[i])
 # donezo =np.load(blue_spheres_saves_location+spooky[i])
 # # #donezo =np.load(blue_spheres_saves_location+'BlueSphere_MD_Chunk7C.npy')
@@ -864,6 +1026,7 @@ def evaluate_move(show_map,true_map,move,playa):
 #
 # circuit_map = copy.copy(donezo)
 #
+# #print("circuit",circuit_map)
 # np.place(true_map, true_map == 6, 0)
 #
 # draw_current_stage(donezo)
@@ -884,7 +1047,7 @@ def evaluate_move(show_map,true_map,move,playa):
 #     typing = input("Next Move:")
 #     if(typing== ""):
 #         typing= "adv"
-#     true_map,show_map,initial_row,initial_col,move,circuit_map,score = evaluate_move(show_map,true_map,typing,playa)
+#     true_map,show_map,initial_row,initial_col,move,circuit_map,score = evaluate_move(show_map,true_map,typing,playa,circuit_map)
 #
 #     print("I will ensare")
 #     #print("joij neo: ens:",neo_ensnare(true_map))
@@ -894,17 +1057,19 @@ def evaluate_move(show_map,true_map,move,playa):
 #     draw_current_stage(show_map)
 #     print("I am the circuit map",circuit_map)
 #     fake_circ = copy.copy(circuit_map)
-#     #draw_circuit_stage(fake_circ)
+#    # draw_circuit_stage(fake_circ)
 #     full_score = score + bonus_points
 #
+#     print("BOuncer",playa.get_bounce_counter())
 #     if(playa.is_dead()):
 #         print("I AM DEAD")
 #         typing= "done"
 #         full_score = -10
-
-
-    # print("Full_Score",full_score)
-    # np.array(show_map)
+#
+#
+#     print("Full_Score",full_score)
+#     np.array(show_map)
+#     print("Counters",playa.get_illegal_counter(),playa.get_bounce_counter())
 
 
 
@@ -934,7 +1099,7 @@ def evaluate_move(show_map,true_map,move,playa):
 # print("Worth Processing?",worth_it)
 
 # append_list = []
-# blue_spheres_saves_location = "C://Users//bretstev//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
+# blue_spheres_saves_location = "C://Users//boblaw//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
 # spooky= os.listdir(blue_spheres_saves_location)
 # for i in range(len(spooky)):
 #     donezo = np.load(blue_spheres_saves_location + spooky[i])

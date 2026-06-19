@@ -96,7 +96,7 @@ def brutal_moves(true_map,player,move_list,show_map,max_moves=50):
 
         return min_move,true_moves,true_map
 
-blue_spheres_saves_location = "C://Users//bretstev//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
+blue_spheres_saves_location = "C://Users//boblaw//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
 spooky= os.listdir(blue_spheres_saves_location)
 print(spooky)
 len(spooky)

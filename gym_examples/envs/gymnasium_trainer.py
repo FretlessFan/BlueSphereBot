@@ -28,6 +28,7 @@ class BlueSphereEnv(gym.Env):
 
     def __init__(self,render_mode=None):
 
+        self.circuit_map = None
         self.show_map = None
         self.worth_it = None
         self.true_map = None
@@ -89,6 +90,9 @@ class BlueSphereEnv(gym.Env):
         else:
             return 3
 
+    def action_masks(self):
+        mask = np.ones(self.action_space.n, dtype=bool)
+
     def convert_reverse_to_num(self,reverse):
         return 1 if reverse else 0
 
@@ -101,6 +105,27 @@ class BlueSphereEnv(gym.Env):
 
         return row,col
 
+    def randomly_place_player_location(self,raw_stage):
+        satisfied = False
+        num_to_direct = {0:"N",
+                         1:"E",
+                         2:"S",
+                         3:"W"}
+
+        while not satisfied:
+            rand_row = self.np_random.integers(0, 16, size=1, dtype=int)[0]
+            rand_col = self.np_random.integers(0, 16, size=1, dtype=int)[0]
+           # print(rand_row,rand_col)
+           # print(raw_stage)
+            if(raw_stage[rand_row][rand_col] == 0):
+                raw_stage[rand_row][rand_col] = 6
+                satisfied = True
+
+        player = bluesphere_visualizer.Player(rand_row, rand_col)
+        rand_dir = num_to_direct[self.np_random.integers(0, 4, size=1, dtype=int)[0]]
+        player.set_direction(rand_dir)
+        return raw_stage,player
+
     def level_grabber(self,generate=True,chunks=None):
         if(generate):
             selected_value = self.np_random.integers(0, len(chunks), size=1, dtype=int)[0]
@@ -110,7 +135,7 @@ class BlueSphereEnv(gym.Env):
             self.stage_select = ("Random Generated",selected_chunk["name"])
             return raw_stage
         else:
-            blue_spheres_saves_location = "C://Users//bretstev//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
+            blue_spheres_saves_location = "C://Users//boblaw//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
             blue_spheres_files = os.listdir(blue_spheres_saves_location)
             self.stage_select = self.np_random.integers(0, len(blue_spheres_files), size=1, dtype=int)
             # self.raw_stage = np.load(blue_spheres_saves_location + blue_spheres_files[int(self.stage_select[0])])
@@ -120,6 +145,7 @@ class BlueSphereEnv(gym.Env):
     def reset(self,seed=None,options=None):
         super().reset(seed=seed)
         self.turn_count = 0
+
 
 
         current_chunks =[#{"name":"2by2","chunk":[{"num": 5, "chunk": [[RING]]}, {"num": 5, "chunk": [[BLUE, BLUE],
@@ -138,11 +164,22 @@ class BlueSphereEnv(gym.Env):
                          ]
 
         self.raw_stage = self.level_grabber(generate=False,chunks=current_chunks)
-        row,col= self.find_player(self.raw_stage)
-        self.player = bluesphere_visualizer.Player(row, col)
+
+
+
+        if(options == "random"):
+            np.place(self.raw_stage, self.raw_stage == 6, 0)
+            self.raw_stage,self.player  = self.randomly_place_player_location(self.raw_stage)
+
+        else:
+            row,col= self.find_player(self.raw_stage)
+            self.player = bluesphere_visualizer.Player(row, col)
+
         self.true_map = copy.deepcopy(self.raw_stage)
+
         self.worth_it = bluesphere_visualizer.worth_processing(self.true_map)
         np.place(self.true_map, self.true_map == 6, 0)
+        self.circuit_map = copy.deepcopy(self.true_map)
         #print("self.true_map inception", self.true_map)
         self.show_map = np.array(bluesphere_visualizer.make_show_map(self.true_map, self.player),dtype=np.int32)
         #print("self.true_map post nuke", self.true_map)
@@ -188,8 +225,19 @@ class BlueSphereEnv(gym.Env):
         # Check if this is an illegal double-turn
         if is_turning and self.player.get_prev_move_turn():
             # RETURN EARLY: No move made, small penalty, episode continues
+            self.player.increase_illegal_counter()
             reward = -1.0
             self.turn_count += 1
+
+            if (self.player.get_illegal_counter() >= 5):
+                full_score = -10
+                terminated = True
+                completed = self.stage_completed(self.true_map)
+                prev_move = self.player.get_prev_move_turn()
+                observation = self.get_observation(completed, prev_move)
+
+                return observation, full_score, terminated, self.turn_count >= 400, {"points": full_score}
+
             completed = self.stage_completed(self.true_map)
             prev_move = self.player.get_prev_move_turn()
             # Construct same observation as before
@@ -201,19 +249,30 @@ class BlueSphereEnv(gym.Env):
         # Check if this is an illegal double-turn
         if (action_text == "snap") and (self.player.get_reverse() == False):
             # RETURN EARLY: No move made, small penalty, episode continues
+            self.player.increase_illegal_counter()
             reward = -1.0
             self.turn_count += 1
+
+            if (self.player.get_illegal_counter() >= 5):
+                full_score = -10
+                terminated = True
+                completed = self.stage_completed(self.true_map)
+                prev_move = self.player.get_prev_move_turn()
+                observation = self.get_observation(completed, prev_move)
+
+                return observation, full_score, terminated, self.turn_count >= 400, {"points": full_score}
+
             completed = self.stage_completed(self.true_map)
             prev_move = self.player.get_prev_move_turn()
             # Construct same observation as before
             observation = self.get_observation(completed, prev_move)
-            return observation, float(reward), False, self.turn_count >= 200, {"log": "Illegal snap"}
+            return observation, float(reward), False, self.turn_count >= 400, {"log": "Illegal snap"}
 
         self.turn_count = self.turn_count + 1
         terminated = False
         #print("self.true_map before itallll", self.true_map)
         self.true_map, self.show_map, self.initial_row, self.initial_col, self.move, self.circuit_map, score = bluesphere_visualizer.evaluate_move(self.show_map, self.true_map,
-                                                                                                                                                self.convert_action_to_text(action), self.player)
+                                                                                                                                                self.convert_action_to_text(action), self.player,self.circuit_map)
 
         #print("self.true_map before convertensnare", self.true_map)
         #print("Move:",self.move)
@@ -225,10 +284,11 @@ class BlueSphereEnv(gym.Env):
         completed = self.stage_completed(self.true_map)
         prev_move = self.player.get_prev_move_turn()
 
+
         if completed:
             distance = np.linalg.norm(np.array([self.player.get_Row(),self.player.get_Col()]) - np.array([15,3]))
             if distance == 0:
-                full_score += 100.0  # Massive payout for ultimate victory condition
+                full_score += 1000.0  # Massive payout for ultimate victory condition
                 terminated = True
             else:
                 # Small penalty for every tile away from the exit when cleared
@@ -239,9 +299,18 @@ class BlueSphereEnv(gym.Env):
             full_score = -10
             terminated = True
 
+        if(self.player.get_bounce_counter() >= 5):
+            full_score = -10
+            terminated = True
+
+        if(self.player.get_illegal_counter() >= 5):
+            full_score = -10
+            terminated = True
+
+
         observation = self.get_observation(completed,prev_move)
 
-        return observation, full_score, terminated, self.turn_count >= 200 , {"points": full_score}
+        return observation, full_score, terminated, self.turn_count >= 400 , {"points": full_score}
 
     def get_observation(self,completed,prev_move):
         return {

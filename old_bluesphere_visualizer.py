@@ -336,10 +336,10 @@ def evaluate_move(show_map,true_map,move,playa):
     return final_rest(show_map,true_map,playa,initial_row,initial_col,move)
 
 
-spooky= os.listdir("C://Users//bretstev//Downloads//Blue_Spheres_Data//Blue_Spheres_Data//")
+spooky= os.listdir("C://Users//boblaw//Downloads//Blue_Spheres_Data//Blue_Spheres_Data//")
 i = 0
 print(spooky[i])
-donezo =np.load("C://Users//bretstev//Downloads//Blue_Spheres_Data//Blue_Spheres_Data//"+spooky[i])
+donezo =np.load("C://Users//boblaw//Downloads//Blue_Spheres_Data//Blue_Spheres_Data//"+spooky[i])
 
 
 true_map = copy.copy(donezo)
