@@ -22,6 +22,17 @@ NODE_ARRAY = []
 
 """
 
+def create_goal_grid(true_map):
+    goal_grid = copy.deepcopy(true_map)
+    np.place(goal_grid, (goal_grid == BLUE) | (goal_grid == RING) ,7)
+    np.place(goal_grid, (goal_grid != 7), 0)
+
+    return goal_grid
+
+def get_grid_percentage(goal_grid):
+    return (1- np.count_nonzero((goal_grid == 8)) / np.count_nonzero((goal_grid == 7) | (goal_grid == 8)))
+
+
 def get_corner_blue(location,true_map):
     #print("hello")
     slider_corner = make_slider_corner()
@@ -228,6 +239,36 @@ def draw_current_stage(donezo):
     cv2.destroyAllWindows()
 
 
+def draw_current_stage_return(donezo):
+
+    neozo= np.zeros((16*40,16*40,3),np.uint8)
+
+    for i in range(0,donezo.shape[0],1):
+        for j in range(0,donezo.shape[1],1):
+
+            if(donezo[i][j] == 1):
+                color = (255,0,0)
+            elif(donezo[i][j] == 3):
+                color = (155, 155, 155)
+            elif (donezo[i][j] == 2):
+                color = (0, 0, 255)
+            elif (donezo[i][j] == 5):
+                color = (0, 255, 255)
+            elif (donezo[i][j] == 4):
+                color = (0, 165, 255)
+            elif (donezo[i][j] == 0):
+                color = (0, 0, 0)
+            elif (donezo[i][j] == 6):
+                color = (0, 255, 0)
+
+            cv2.rectangle(neozo,(0+j*40,0+i*40),(40+j*40,40+i*40),color,-1)
+
+
+
+    return neozo
+
+
+
 
 class Player:
     def __init__(self,row,col):
@@ -277,6 +318,8 @@ class Player:
     def increment_ring(self):
         self.ring = (self.ring + 1)
 
+    def get_ring_counter(self):
+        return self.ring
     def get_reverse(self):
         return self.reverse
 
@@ -583,23 +626,23 @@ def paint_circuit(row,col,circuit_map):
 
 
 
-def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map):
+def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map,goal_grid):
     score = -0.01
     if (playa.is_dead()):
         #print("dead")
-        return true_map, show_map, initial_row, initial_col, move, circuit_map,score
+        return true_map, show_map, initial_row, initial_col, move, circuit_map,score,goal_grid
 
     elif(move == "illegal"):
         score = score - 2
         playa.increase_illegal_counter()
-        return true_map, show_map, initial_row, initial_col, move, circuit_map,score
+        return true_map, show_map, initial_row, initial_col, move, circuit_map,score,goal_grid
 
     elif (playa.position_is_outside()):
         playa.set_Col(initial_col)
         playa.set_Row(initial_row)
         score = score - 2
-        print("outside")
-        return true_map, show_map, initial_row, initial_col, move, circuit_map,score
+        #print("outside")
+        return true_map, show_map, initial_row, initial_col, move, circuit_map,score,goal_grid
 
     elif ((true_map[playa.get_Row()][playa.get_Col()] == RED) and (playa.get_prev_move_turn() == False)):
         playa.kill()
@@ -608,6 +651,7 @@ def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map)
         playa.reset_bounce_counter()
         playa.reset_illegal_counter()
         circuit_map = paint_circuit(playa.get_Row(),playa.get_Col(),circuit_map)
+        goal_grid[playa.get_Row()][playa.get_Col()] = 8
 
 
         true_map[playa.get_Row()][playa.get_Col()] = RED
@@ -625,7 +669,7 @@ def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map)
         if(move == "jump_one" ):
 
             playa.advance(1)
-            true_map,show_map,initial_row,initial_col,move,circuit_map,score=final_rest(show_map,true_map,playa,initial_row,initial_col,"adv",circuit_map)
+            true_map,show_map,initial_row,initial_col,move,circuit_map,score=final_rest(show_map,true_map,playa,initial_row,initial_col,"adv",circuit_map,goal_grid)
 
         else:
             playa.set_Position(initial_row,initial_col)
@@ -637,19 +681,20 @@ def final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map)
 
 
         playa.spring_cap()
-        true_map,show_map,initial_row,initial_col,move,circuit_map,score= final_rest(show_map, true_map, playa, initial_row, initial_col, "adv",circuit_map)
+        true_map,show_map,initial_row,initial_col,move,circuit_map,score= final_rest(show_map, true_map, playa, initial_row, initial_col, "adv",circuit_map,goal_grid)
 
     elif(true_map[playa.get_Row()][playa.get_Col()] == RING):
         playa.reset_bounce_counter()
         playa.reset_illegal_counter()
         true_map[playa.get_Row()][playa.get_Col()] = 0
+        goal_grid[playa.get_Row()][playa.get_Col()] = 8
         playa.increment_ring()
-        score = score + 5
+        score = score + 5*(1.01 +playa.get_ring_counter()/10)
     show_map = make_show_map(true_map, playa)
 
 
 
-    return true_map,show_map,initial_row,initial_col,move,circuit_map,score
+    return true_map,show_map,initial_row,initial_col,move,circuit_map,score,goal_grid
 
 
 
@@ -821,6 +866,8 @@ def convert_ensnare(ensnare,true_map,playa):
     if (playa.position_is_outside() == False):
         if(true_map[playa.get_Row()][playa.get_Col()] == RING):
             true_map[playa.get_Row()][playa.get_Col()] = 0
+            playa.increment_ring()
+
 
     return true_map,bonus_points
 
@@ -927,7 +974,7 @@ def is_perimeter(row,col,true_map):
     return False
 
 
-def evaluate_move(show_map,true_map,move,playa,circuit_map):
+def evaluate_move(show_map,true_map,move,playa,circuit_map,goal_grid):
     #circuit_map = None
     initial_row = playa.get_Row()
     initial_col = playa.get_Col()
@@ -1008,10 +1055,10 @@ def evaluate_move(show_map,true_map,move,playa,circuit_map):
         # else:
         #     final_move =  "jump_two"
 
-    return final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map)
+    return final_rest(show_map,true_map,playa,initial_row,initial_col,move,circuit_map,goal_grid)
 
 
-# blue_spheres_saves_location = "C://Users//boblaw//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
+# blue_spheres_saves_location = "C://Users//wsreees//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
 # spooky= os.listdir(blue_spheres_saves_location)
 # print(spooky)
 # len(spooky)
@@ -1035,6 +1082,9 @@ def evaluate_move(show_map,true_map,move,playa,circuit_map):
 # playa = Player(3,15)
 # #
 # show_map = map
+#
+# goal_grid = create_goal_grid(true_map)
+#
 # worth_it = worth_processing(true_map)
 # # print("Worth Processing?",worth_it)
 # # #for i in range(0,20,1):
@@ -1047,7 +1097,7 @@ def evaluate_move(show_map,true_map,move,playa,circuit_map):
 #     typing = input("Next Move:")
 #     if(typing== ""):
 #         typing= "adv"
-#     true_map,show_map,initial_row,initial_col,move,circuit_map,score = evaluate_move(show_map,true_map,typing,playa,circuit_map)
+#     true_map,show_map,initial_row,initial_col,move,circuit_map,score,goal_grid = evaluate_move(show_map,true_map,typing,playa,circuit_map,goal_grid)
 #
 #     print("I will ensare")
 #     #print("joij neo: ens:",neo_ensnare(true_map))
@@ -1070,8 +1120,8 @@ def evaluate_move(show_map,true_map,move,playa,circuit_map):
 #     print("Full_Score",full_score)
 #     np.array(show_map)
 #     print("Counters",playa.get_illegal_counter(),playa.get_bounce_counter())
-
-
+#     print(get_grid_percentage(goal_grid))
+#
 
 
 # print(spooky)
@@ -1099,7 +1149,7 @@ def evaluate_move(show_map,true_map,move,playa,circuit_map):
 # print("Worth Processing?",worth_it)
 
 # append_list = []
-# blue_spheres_saves_location = "C://Users//boblaw//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
+# blue_spheres_saves_location = "C://Users//wsreees//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
 # spooky= os.listdir(blue_spheres_saves_location)
 # for i in range(len(spooky)):
 #     donezo = np.load(blue_spheres_saves_location + spooky[i])

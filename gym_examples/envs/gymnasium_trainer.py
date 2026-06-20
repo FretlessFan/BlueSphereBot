@@ -8,6 +8,7 @@ from generate_stages import Blue_Generator
 import os
 import copy
 
+from gym_examples.envs.bluesphere_visualizer import get_grid_percentage
 
 #DEFINING COLORS
 BLUE = 1
@@ -28,6 +29,7 @@ class BlueSphereEnv(gym.Env):
 
     def __init__(self,render_mode=None):
 
+        self.goal_grid = None
         self.circuit_map = None
         self.show_map = None
         self.worth_it = None
@@ -70,6 +72,12 @@ class BlueSphereEnv(gym.Env):
                 shape=(1,),
                 dtype=np.int32
         ),
+            "percent_left": spaces.Box(
+                low=0.0,
+                high=1.0,
+                shape=(1,),
+                dtype=np.float32
+        ),
 
             }
         )
@@ -92,6 +100,20 @@ class BlueSphereEnv(gym.Env):
 
     def action_masks(self):
         mask = np.ones(self.action_space.n, dtype=bool)
+        if(self.player.get_prev_move_turn()):
+            mask[Action.LEFT.value] = False
+            mask[Action.RIGHT.value] = False
+
+        if(self.player.get_reverse() == False):
+            mask[Action.SNAP.value] = False
+
+        if(bluesphere_visualizer.is_jump_legal(self.player,"jump_one",self.true_map) == False):
+            mask[Action.JUMP_ONE.value] = False
+
+        if (bluesphere_visualizer.is_jump_legal(self.player, "jump_two", self.true_map) == False):
+            mask[Action.JUMP_TWO.value] = False
+
+        return mask
 
     def convert_reverse_to_num(self,reverse):
         return 1 if reverse else 0
@@ -135,16 +157,25 @@ class BlueSphereEnv(gym.Env):
             self.stage_select = ("Random Generated",selected_chunk["name"])
             return raw_stage
         else:
-            blue_spheres_saves_location = "C://Users//boblaw//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
-            blue_spheres_files = os.listdir(blue_spheres_saves_location)
-            self.stage_select = self.np_random.integers(0, len(blue_spheres_files), size=1, dtype=int)
-            # self.raw_stage = np.load(blue_spheres_saves_location + blue_spheres_files[int(self.stage_select[0])])
-            raw_stage = np.load(blue_spheres_saves_location + blue_spheres_files[int(0)])
+            try:
+                blue_spheres_saves_location = "C://Users//wsreees//Downloads//moon//gym_examples//envs//Blue_Spheres_Data//"
+                blue_spheres_files = os.listdir(blue_spheres_saves_location)
+                self.stage_select = self.np_random.integers(0, len(blue_spheres_files), size=1, dtype=int)
+                # self.raw_stage = np.load(blue_spheres_saves_location + blue_spheres_files[int(self.stage_select[0])])
+                raw_stage = np.load(blue_spheres_saves_location + blue_spheres_files[int(1)])
+            except:
+                blue_spheres_saves_location = "C://Users//wsreees//Downloads//moon//gym_examples//envs//Blue_Spheres_Data_Copy//"
+                blue_spheres_files = os.listdir(blue_spheres_saves_location)
+                self.stage_select = self.np_random.integers(0, len(blue_spheres_files), size=1, dtype=int)
+                # self.raw_stage = np.load(blue_spheres_saves_location + blue_spheres_files[int(self.stage_select[0])])
+                raw_stage = np.load(blue_spheres_saves_location + blue_spheres_files[int(1)])
             return raw_stage
 
     def reset(self,seed=None,options=None):
         super().reset(seed=seed)
         self.turn_count = 0
+        self.done_flag = False
+        self.max_distance = 1000000
 
 
 
@@ -179,6 +210,7 @@ class BlueSphereEnv(gym.Env):
 
         self.worth_it = bluesphere_visualizer.worth_processing(self.true_map)
         np.place(self.true_map, self.true_map == 6, 0)
+        self.goal_grid = bluesphere_visualizer.create_goal_grid(self.true_map)
         self.circuit_map = copy.deepcopy(self.true_map)
         #print("self.true_map inception", self.true_map)
         self.show_map = np.array(bluesphere_visualizer.make_show_map(self.true_map, self.player),dtype=np.int32)
@@ -188,7 +220,8 @@ class BlueSphereEnv(gym.Env):
             "direction": np.array([self.convert_direction_to_num(self.player.get_direction())],dtype=np.int32),
             "reverse": np.array([self.convert_reverse_to_num(self.player.get_reverse())],dtype=np.int32),
             "stage_cleared": np.array([0], dtype=np.int32),
-            "prev_move_turn": np.array([0], dtype=np.int32)
+            "prev_move_turn": np.array([0], dtype=np.int32),
+            "percent_left": np.array([bluesphere_visualizer.get_grid_percentage(self.goal_grid)], dtype=np.float32)
         }
         #level_name = blue_spheres_files[int(self.stage_select[0])]
         # level_name = blue_spheres_files[int(0)]
@@ -196,7 +229,7 @@ class BlueSphereEnv(gym.Env):
         info = {
             "log": f"Loaded This Level, random"
         }
-        print(info)
+        #print(info)
         return observation, info
 
     def convert_action_to_text(self,action):
@@ -271,8 +304,8 @@ class BlueSphereEnv(gym.Env):
         self.turn_count = self.turn_count + 1
         terminated = False
         #print("self.true_map before itallll", self.true_map)
-        self.true_map, self.show_map, self.initial_row, self.initial_col, self.move, self.circuit_map, score = bluesphere_visualizer.evaluate_move(self.show_map, self.true_map,
-                                                                                                                                                self.convert_action_to_text(action), self.player,self.circuit_map)
+        self.true_map, self.show_map, self.initial_row, self.initial_col, self.move, self.circuit_map, score,self.goal_grid = bluesphere_visualizer.evaluate_move(self.show_map, self.true_map,
+                                                                                                                                                self.convert_action_to_text(action), self.player,self.circuit_map,self.goal_grid)
 
         #print("self.true_map before convertensnare", self.true_map)
         #print("Move:",self.move)
@@ -286,13 +319,23 @@ class BlueSphereEnv(gym.Env):
 
 
         if completed:
+
+            if (self.done_flag == False):
+                self.done_flag = True
+                full_score += 250.0
+
+
             distance = np.linalg.norm(np.array([self.player.get_Row(),self.player.get_Col()]) - np.array([15,3]))
             if distance == 0:
                 full_score += 1000.0  # Massive payout for ultimate victory condition
                 terminated = True
             else:
+                if(distance < self.max_distance):
+                    self.max_distance = distance
+                    full_score += 10 + (1/self.max_distance)
                 # Small penalty for every tile away from the exit when cleared
-                full_score -= float(distance * 0.5)
+                elif(distance > self.max_distance):
+                    full_score -= 0.02
 
 
         if (self.player.is_dead()):
@@ -318,5 +361,6 @@ class BlueSphereEnv(gym.Env):
             "direction": np.array([self.convert_direction_to_num(self.player.get_direction())],dtype=np.int32),
             "reverse": np.array([self.convert_reverse_to_num(self.player.get_reverse())],dtype=np.int32),
             "stage_cleared": np.array([1 if completed else 0], dtype=np.int32),
-            "prev_move_turn": np.array([1 if prev_move else 0], dtype=np.int32)
+            "prev_move_turn": np.array([1 if prev_move else 0], dtype=np.int32),
+            "percent_left":np.array([bluesphere_visualizer.get_grid_percentage(self.goal_grid)], dtype=np.float32)
         }

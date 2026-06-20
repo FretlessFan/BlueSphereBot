@@ -12,7 +12,7 @@ import datetime as dt
 
 class Blue_Generator():
     def __init__(self,chunks,stage_names="Random_Generated",number=10,
-                 location="C://Users//boblaw//Downloads//moon//gym_examples//envs//"):
+                 location="C://Users//wsreees//Downloads//moon//gym_examples//envs//"):
         self.chunks = chunks
         self.number = number
         self.stage_names = stage_names
@@ -85,7 +85,7 @@ class Blue_Generator():
         return grid
 
 # stage_names = "Random_Generated"
-# location= "C://Users//boblaw//Downloads//moon//gym_examples//envs//"
+# location= "C://Users//wsreees//Downloads//moon//gym_examples//envs//"
 # os.makedirs(location+stage_names, exist_ok=True)
 # blue = Blue_Generator(current_chunks)
 #

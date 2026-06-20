@@ -1,4 +1,7 @@
 import os
+
+from sb3_contrib import MaskablePPO
+
 from gym_examples.envs import bluesphere_visualizer
 import gymnasium as gym
 from stable_baselines3 import DQN  # Replace with your algorithm
@@ -6,6 +9,7 @@ from gym_examples.envs import BlueSphereEnv
 import glob
 # 1. Load the environment
 env = gym.make('gym_examples/BlueSphere-v0')
+
 
 # 2. Load the trained model
 # Replace with the algorithm you trained (PPO, A2C, DQN, etc.)
@@ -19,7 +23,7 @@ print(f"Loading existing model from: {bizness}")
 
 # 3. Test the model
 #obs, info = env.reset(options="random")
-obs, info = env.reset(options=None)
+obs, info = env.reset(options="random")
 
 done = False
 
